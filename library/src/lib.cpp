@@ -6,7 +6,6 @@
 #include <string_view>
 #include <stdexcept>
 #include <iostream>
-constexpr std::string_view apiLink;
 
 
 Alt::ApiClient::ApiClient() {
@@ -45,4 +44,15 @@ std::string Alt::ApiClient::getRequest(std::string_view endPoint) {
         }
     }
     return std::move(readBuffer);
+}
+
+
+
+
+
+Alt::BranchPacksDiff
+Alt::BranchPackegesArranger::searchUnique(const Alt::ArchSearchMap &map1, const Alt::ArchSearchMap &map2) {
+    Alt::BranchPacksDiff diff;
+    for (auto &it1 : map1) {
+    }
 }
