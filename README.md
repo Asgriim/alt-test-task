@@ -45,7 +45,7 @@ int main(int argc, char* argv[]) {
     const std::string apiLink = "https://rdb.altlinux.org/api/export/branch_binary_packages/";
     Alt::BranchPackagesArranger arranger(apiLink);
 
-    //this method find exist in branch p10 and does not exist in p9
+    //this method find packages that exist in branch p10 and does not exist in p9
     //Result is stored in comparison field
     Alt::BranchPacksDiff uniDiff = arranger.findBranchUniqPacks("p10", "p9");
 
@@ -61,7 +61,7 @@ int main(int argc, char* argv[]) {
                         }
                    );
 
-    //method o perform the task:
+    //method to perform the task:
     //only_in_branch1
     //only_in_branch2
     //version_higher_in_branch1
