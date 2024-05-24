@@ -5,8 +5,10 @@ SET(TARGET_NAME test-app)
 
 add_executable(${TARGET_NAME} ${SRC_FILES})
 
+find_package(jsoncpp REQUIRED)
 find_library(alttest NAMES alttest)
-target_link_libraries(${TARGET_NAME} PRIVATE alttest)
+
+target_link_libraries(${TARGET_NAME} PRIVATE alttest jsoncpp_lib)
 
 target_include_directories(${TARGET_NAME}
         PUBLIC

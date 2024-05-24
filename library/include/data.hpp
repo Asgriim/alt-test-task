@@ -31,7 +31,7 @@ namespace Alt {
     struct BranchPacksDiff {
         std::string branch1;
         std::string branch2;
-        std::string difference;
+        std::string branchDifference;
         ArchPackMap comparison;
     };
 

@@ -2,8 +2,9 @@
 // Created by asgrim on 24.05.24.
 //
 
-#ifndef ALT_TEST_LIB_HPP
-#define ALT_TEST_LIB_HPP
+#ifndef ALT_TEST_ARRANGER_HPP
+#define ALT_TEST_ARRANGER_HPP
+
 #include <string>
 #include <curl/curl.h>
 #include <jsoncpp/json/json.h>
@@ -26,6 +27,8 @@ namespace Alt{
 
         BranchPacksDiff findBranchUniqPacks(std::string_view originBranch, std::string_view comparedBranch);
 
+        TargetDiff getTargetDiff(std::string_view originBranch, std::string_view comparedBranch);
+
         template<typename Compare>
         BranchPacksDiff branchesInteresection(
                 std::string_view originBranch,
@@ -36,7 +39,7 @@ namespace Alt{
             originEndPoint.append(originBranch);
 
             std::string comparedEndPoint = m_apiLink;
-            originEndPoint.append(comparedBranch);
+            comparedEndPoint.append(comparedBranch);
 
             std::string json = m_apiClient.getRequest(originEndPoint);
             PackageList originList = parseJsonToPackageList(json);
@@ -91,4 +94,4 @@ namespace Alt{
 }
 
 
-#endif //ALT_TEST_LIB_HPP
+#endif //ALT_TEST_ARRANGER_HPP

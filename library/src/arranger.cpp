@@ -2,7 +2,7 @@
 // Created by asgrim on 24.05.24.
 //
 
-#include "lib.hpp"
+#include "arranger.hpp"
 #include <string_view>
 #include <stdexcept>
 #include <iostream>
@@ -83,7 +83,7 @@ Alt::BranchPackagesArranger::findBranchUniqPacks(std::string_view originBranch, 
     originEndPoint.append(originBranch);
 
     std::string comparedEndPoint = m_apiLink;
-    originEndPoint.append(comparedBranch);
+    comparedEndPoint.append(comparedBranch);
 
     std::string json = m_apiClient.getRequest(originEndPoint);
     PackageList originList = parseJsonToPackageList(json);
@@ -95,8 +95,51 @@ Alt::BranchPackagesArranger::findBranchUniqPacks(std::string_view originBranch, 
     diff.branch1 = originBranch;
     diff.branch2 = comparedBranch;
 
-    diff.difference = "only in branch 1";
+    diff.branchDifference = "only in branch 1";
     return std::move(diff);
+}
+
+Alt::TargetDiff
+Alt::BranchPackagesArranger::getTargetDiff(std::string_view originBranch, std::string_view comparedBranch) {
+    std::string originEndPoint = m_apiLink;
+    originEndPoint.append(originBranch);
+
+    std::string comparedEndPoint = m_apiLink;
+    comparedEndPoint.append(comparedBranch);
+
+    std::string json = m_apiClient.getRequest(originEndPoint);
+    PackageList originList = parseJsonToPackageList(json);
+
+    json = m_apiClient.getRequest(comparedEndPoint);
+    PackageList comparedList = parseJsonToPackageList(json);
+    TargetDiff targetDiff;
+
+    ArchSearchMap originMap = makeSearchMap(originList);
+    ArchSearchMap comparedMap = makeSearchMap(comparedList);
+
+    Alt::BranchPacksDiff onlyBr1 = searchUnique(originMap, comparedMap);
+    Alt::BranchPacksDiff onlyBr2 = searchUnique(comparedMap, originMap);
+    Alt::BranchPacksDiff verGreater = findIntersection(originMap, comparedMap, version_greater);
+
+    onlyBr1.branch1 = originBranch;
+    onlyBr1.branch2 = comparedBranch;
+    onlyBr2.branch1 = originBranch;
+    onlyBr2.branch2 = comparedBranch;
+    verGreater.branch1 = originBranch;
+    verGreater.branch2 = comparedBranch;
+
+    onlyBr1.branchDifference = "packages exist only in branch1";
+    onlyBr2.branchDifference = "packages exist only in branch2";
+    verGreater.branchDifference = "packages version higher in branch 1";
+
+    targetDiff.onlyBr1 = onlyBr1;
+    targetDiff.onlyBr2 = onlyBr2;
+    targetDiff.verHigherBr1 =verGreater;
+
+    return std::move(targetDiff);
+
+
+
 }
 
 
