@@ -1,22 +1,18 @@
 //
 // Created by asgrim on 24.05.24.
 //
-#include "alttestlib"
+
 #include <iostream>
-#include "jsonMapper.hpp"
-int main() {
-    Alt::BranchPackagesArranger arranger("https://rdb.altlinux.org/api/export/branch_binary_packages/");
-    auto t = arranger.getTargetDiff("p10","p9");
+#include "cliApp.hpp"
 
-    Json::Value jsonTargetDiff = JsonMapper::targetDiffToJson(t);
-
-    // Convert JSON value to string
-    Json::StreamWriterBuilder writer;
-    std::string jsonString = Json::writeString(writer, jsonTargetDiff);
-
-    // Output the JSON string
-    std::cout << jsonString << std::endl;
-
+int main(int argc, char* argv[]) {
+    const std::string apiLink = "https://rdb.altlinux.org/api/export/branch_binary_packages/";
+    CliApp app(apiLink);
+    app.addBranch("sisyphus");
+    app.addBranch("p9");
+    app.addBranch("p10");
+    app.validate(argc, argv);
+    std::cout << app.arrangeBranchPackages(argv[1], argv[2]);
 
     return 0;
 }

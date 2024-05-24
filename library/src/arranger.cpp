@@ -139,7 +139,6 @@ Alt::BranchPackagesArranger::getTargetDiff(std::string_view originBranch, std::s
     return std::move(targetDiff);
 
 
-
 }
 
 
