@@ -6,45 +6,12 @@
 #define ALT_TEST_LIB_HPP
 #include <string>
 #include <curl/curl.h>
-#include <memory>
-#include <vector>
-#include <unordered_map>
+#include <jsoncpp/json/json.h>
+
+#include "apiClient.hpp"
+#include "data.hpp"
 
 namespace Alt{
-
-    struct BinPackage {
-        std::string name;
-        int64_t epoch;
-        std::string version;
-        std::string release;
-        std::string arch;
-        std::string disttag;
-        int64_t buildtime;
-        std::string source;
-    };
-
-    typedef std::vector<BinPackage> PackageList;
-
-    //key = arch name
-    //val = list of bin packages
-    typedef std::unordered_map<std::string, PackageList> ArchPackMap;
-
-
-
-    struct BranchPacksDiff {
-        std::string arch;
-        std::string branch1;
-        std::string branch2;
-        std::string difference;
-        ArchPackMap comparison;
-    };
-
-
-    struct TargetDiff {
-        BranchPacksDiff onlyBr1;
-        BranchPacksDiff onlyBr2;
-        BranchPacksDiff verHigherBr1;
-    };
 
     bool version_greater(const BinPackage &p1, const BinPackage &p2);
 
@@ -55,12 +22,37 @@ namespace Alt{
     class BranchPackagesArranger {
 
     public:
+        explicit BranchPackagesArranger(std::string mApiLink);
+
         BranchPacksDiff findBranchUniqPacks(std::string_view originBranch, std::string_view comparedBranch);
 
         template<typename Compare>
-        BranchPacksDiff branchesInteresection(std::string_view originBranch,
-                                                           std::string_view comparedBranch,
-                                                           Compare compare = version_greater);
+        BranchPacksDiff branchesInteresection(
+                std::string_view originBranch,
+                std::string_view comparedBranch,
+                Compare compare = version_greater) {
+
+            std::string originEndPoint = m_apiLink;
+            originEndPoint.append(originBranch);
+
+            std::string comparedEndPoint = m_apiLink;
+            originEndPoint.append(comparedBranch);
+
+            std::string json = m_apiClient.getRequest(originEndPoint);
+            PackageList originList = parseJsonToPackageList(json);
+
+            json = m_apiClient.getRequest(comparedEndPoint);
+            PackageList comparedList = parseJsonToPackageList(json);
+
+
+            Alt::BranchPacksDiff diff = findIntersection(makeSearchMap(originList), makeSearchMap(comparedList), compare);
+            return diff;
+        }
+
+    private:
+
+        PackageList parseJsonToPackageList(std::string_view json);
+        BinPackage parseJsonToPackage(const Json::Value &value);
 
         ArchSearchMap makeSearchMap(const PackageList &list);
 
@@ -91,20 +83,8 @@ namespace Alt{
             return std::move(diff);
         }
 
-    };
-
-    class ApiClient {
-    public:
-        ApiClient();
-
-        virtual ~ApiClient();
-
-        std::string getRequest(std::string_view endPoint);
-
-    private:
-        static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp);
-
-        std::shared_ptr<CURL> m_curl;
+        std::string m_apiLink;
+        details::ApiClient m_apiClient;
     };
 
 

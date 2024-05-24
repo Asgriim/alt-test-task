@@ -6,49 +6,10 @@
 #include <string_view>
 #include <stdexcept>
 #include <iostream>
+#include <utility>
 
 
-Alt::ApiClient::ApiClient() {
-    curl_global_init(CURL_GLOBAL_DEFAULT);
-
-    m_curl = std::shared_ptr<CURL>(curl_easy_init(), curl_easy_cleanup);
-
-    if (!m_curl) {
-        throw std::runtime_error("Failed ti initialize CURL");
-    }
-}
-
-Alt::ApiClient::~ApiClient() {
-    curl_global_cleanup();
-}
-
-size_t Alt::ApiClient::WriteCallback(void *contents, size_t size, size_t nmemb, void *userp) {
-    ((std::string*)userp)->append((char*)contents, size * nmemb);
-    return size * nmemb;
-}
-
-
-
-std::string Alt::ApiClient::getRequest(std::string_view endPoint) {
-    std::string readBuffer;
-    CURLcode res;
-    if (m_curl) {
-        curl_easy_setopt(m_curl.get(), CURLOPT_URL, endPoint.data());
-        curl_easy_setopt(m_curl.get(), CURLOPT_WRITEFUNCTION, WriteCallback);
-        curl_easy_setopt(m_curl.get(), CURLOPT_WRITEDATA, &readBuffer);
-
-        res = curl_easy_perform(m_curl.get());
-
-        if(res != CURLE_OK) {
-            std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
-        }
-    }
-    return std::move(readBuffer);
-}
-
-
-
-
+Alt::BranchPackagesArranger::BranchPackagesArranger(std::string mApiLink) : m_apiLink(std::move(mApiLink)) { }
 
 Alt::BranchPacksDiff
 Alt::BranchPackagesArranger::searchUnique(const Alt::ArchSearchMap &map1,
@@ -90,6 +51,54 @@ Alt::ArchSearchMap Alt::BranchPackagesArranger::makeSearchMap(const Alt::Package
     }
     return std::move(map);
 }
+
+Alt::BinPackage Alt::BranchPackagesArranger::parseJsonToPackage(const Json::Value &value) {
+    BinPackage package;
+    package.name = value["name"].asString();
+    package.epoch = value["epoch"].asInt64();
+    package.version = value["version"].asString();
+    package.release = value["release"].asString();
+    package.arch = value["arch"].asString();
+    package.disttag = value["disttag"].asString();
+    package.buildtime = value["buildtime"].asInt64();
+    package.source = value["source"].asString();
+    return std::move(package);
+}
+
+Alt::PackageList Alt::BranchPackagesArranger::parseJsonToPackageList(std::string_view json) {
+    PackageList list;
+    Json::Value root;
+    Json::Reader reader;
+    reader.parse(json.data(), root);
+    Json::Value packages = root["packages"];
+    for (int i = 0; i < packages.size(); ++i) {
+        list.push_back(parseJsonToPackage(packages[i]));
+    }
+    return std::move(list);
+}
+
+Alt::BranchPacksDiff
+Alt::BranchPackagesArranger::findBranchUniqPacks(std::string_view originBranch, std::string_view comparedBranch) {
+    std::string originEndPoint = m_apiLink;
+    originEndPoint.append(originBranch);
+
+    std::string comparedEndPoint = m_apiLink;
+    originEndPoint.append(comparedBranch);
+
+    std::string json = m_apiClient.getRequest(originEndPoint);
+    PackageList originList = parseJsonToPackageList(json);
+
+    json = m_apiClient.getRequest(comparedEndPoint);
+    PackageList comparedList = parseJsonToPackageList(json);
+
+    Alt::BranchPacksDiff diff = searchUnique(makeSearchMap(originList), makeSearchMap(comparedList));
+    diff.branch1 = originBranch;
+    diff.branch2 = comparedBranch;
+
+    diff.difference = "only in branch 1";
+    return std::move(diff);
+}
+
 
 bool Alt::version_greater(const Alt::BinPackage &p1, const Alt::BinPackage &p2) {
     return p1.version > p2.version;
