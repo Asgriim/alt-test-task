@@ -18,6 +18,7 @@ namespace Alt{
 
     //1 key = arch name
     //2 key = name of package
+    //value = bin package
     typedef std::unordered_map<std::string_view, std::unordered_map<std::string_view,BinPackage>> ArchSearchMap;
 
     class BranchPackagesArranger {
@@ -29,8 +30,8 @@ namespace Alt{
 
         TargetDiff getTargetDiff(std::string_view originBranch, std::string_view comparedBranch);
 
-        template<typename Compare>
-        BranchPacksDiff branchesInteresection(
+        template<typename Compare = decltype(version_greater)>
+        BranchPacksDiff branchesIntersection(
                 std::string_view originBranch,
                 std::string_view comparedBranch,
                 Compare compare = version_greater) {
