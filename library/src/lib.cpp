@@ -51,8 +51,46 @@ std::string Alt::ApiClient::getRequest(std::string_view endPoint) {
 
 
 Alt::BranchPacksDiff
-Alt::BranchPackegesArranger::searchUnique(const Alt::ArchSearchMap &map1, const Alt::ArchSearchMap &map2) {
+Alt::BranchPackagesArranger::searchUnique(const Alt::ArchSearchMap &map1,
+                                          const Alt::ArchSearchMap &map2) {
     Alt::BranchPacksDiff diff;
-    for (auto &it1 : map1) {
+
+    for (auto &archIt : map1) {
+        for (auto &nameIt : archIt.second) {
+            if (!contains(archIt.first, nameIt.first, map2)) {
+                diff.comparison[archIt.first.data()].push_back(nameIt.second);
+            }
+        }
     }
+    return std::move(diff);
+}
+
+bool
+Alt::BranchPackagesArranger::contains(std::string_view arch,
+                                      std::string_view name,
+                                      const Alt::ArchSearchMap &map) {
+    auto archIt = map.find(arch);
+
+    if (archIt != map.end()) {
+        auto &nameMap = archIt->second;
+        auto nameIt = nameMap.find(name);
+
+        if (nameIt != nameMap.end()) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+Alt::ArchSearchMap Alt::BranchPackagesArranger::makeSearchMap(const Alt::PackageList &list) {
+    ArchSearchMap map;
+    for (const BinPackage &package : list) {
+        map[package.arch][package.name] = package;
+    }
+    return std::move(map);
+}
+
+bool Alt::version_greater(const Alt::BinPackage &p1, const Alt::BinPackage &p2) {
+    return p1.version > p2.version;
 }

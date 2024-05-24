@@ -27,7 +27,7 @@ namespace Alt{
 
     //key = arch name
     //val = list of bin packages
-    typedef std::unordered_map<std::string, PackageList> archPackMap;
+    typedef std::unordered_map<std::string, PackageList> ArchPackMap;
 
 
 
@@ -36,7 +36,7 @@ namespace Alt{
         std::string branch1;
         std::string branch2;
         std::string difference;
-        archPackMap comparison;
+        ArchPackMap comparison;
     };
 
 
@@ -46,11 +46,13 @@ namespace Alt{
         BranchPacksDiff verHigherBr1;
     };
 
+    bool version_greater(const BinPackage &p1, const BinPackage &p2);
+
     //1 key = arch name
     //2 key = name of package
     typedef std::unordered_map<std::string_view, std::unordered_map<std::string_view,BinPackage>> ArchSearchMap;
 
-    class BranchPackegesArranger {
+    class BranchPackagesArranger {
 
     public:
         BranchPacksDiff findBranchUniqPacks(std::string_view originBranch, std::string_view comparedBranch);
@@ -58,15 +60,37 @@ namespace Alt{
         template<typename Compare>
         BranchPacksDiff branchesInteresection(std::string_view originBranch,
                                                            std::string_view comparedBranch,
-                                                           Compare compare);
-    private:
+                                                           Compare compare = version_greater);
 
+        ArchSearchMap makeSearchMap(const PackageList &list);
 
         BranchPacksDiff searchUnique(const ArchSearchMap &map1, const ArchSearchMap &map2);
+        bool contains(std::string_view arch, std::string_view name, const ArchSearchMap &map);
 
-        template<typename Compare>
-        BranchPacksDiff findIntersection(const ArchSearchMap &map1, const ArchSearchMap &map2,
-                                         Compare compare);
+
+        template<typename Compare = decltype(version_greater)>
+        BranchPacksDiff findIntersection(const ArchSearchMap &map1,
+                                         const ArchSearchMap &map2,
+                                         Compare compare = version_greater) {
+            Alt::BranchPacksDiff diff;
+            for (auto &archIt : map1) {
+                std::string_view archName = archIt.first;
+                for (auto &nameIt : archIt.second) {
+                    std::string_view pacName = nameIt.first;
+
+                    if (contains(archName, pacName, map2)) {
+                        const BinPackage &p2 = map2.find(archName)->second.find(pacName)->second;
+
+                        if (compare(nameIt.second, p2)){
+                            diff.comparison[archName.data()].push_back(nameIt.second);
+                        }
+
+                    }
+                }
+            }
+            return std::move(diff);
+        }
+
     };
 
     class ApiClient {
